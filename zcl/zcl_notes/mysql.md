@@ -484,3 +484,58 @@ SUM() 	返回某列值之和
 
 > 处理现有的表 在创建新表时，指定的表名必须不存在，否则 将出错。如果要防止意外覆盖已有的表，SQL要求首先手工删 除该表（请参阅后面的小节），然后再重建它，而不是简单地 用创建表语句覆盖它。如果你仅想在一个表不存在时创建它，应该在表名后给出`IF NOT EXISTS`。这样做不检查已有表的模式是否与你打算创建 的表模式相匹配。它只是查看表名是否存在，并且仅在表名不 存在时创建它。
 
+> **确定AUTO_INCREMENT值 让MySQL生成（通过自动增量）主 键的一个缺点是你不知道这些值都是谁。 考虑这个场景：你正在增加一个新订单。这要求在orders表 中创建一行，然后在orderitms表中对订购的每项物品创建一 行。order_num在orderitems表中与订单细节一起存储。这 就是为什么orders表和orderitems表为相互关联的表的原 因。这显然要求你在插入orders行之后，插入orderitems行 之前知道生成的order_num。 那么，如何在使用AUTO_INCREMENT列时获得这个值呢？可使 用last_insert_id()函数获得这个值，如下所示： () 此语句返回最后一个AUTO_INCREMENT值，然后可以将它用于 后续的MySQL语句。**
+
+
+
+- InnoDB是一个可靠的事务处理引擎，它不支持全文 本搜索；
+- MEMORY在功能等同于MyISAM，但由于数据存储在内存（不是磁盘） 中，速度很快（特别适合于临时表）；
+- MyISAM是一个性能极高的引擎，它支持全文本搜索， 但不支持事务处理。
+
+> 外键不能跨引擎混用引擎类型有一个大缺陷。外键（用于强制实施引用完整性）不能跨引擎，即使用一 个引擎的表不能引用具有使用不同引擎的表的外键。
+
+#### 更新表
+
+- `alert table vendors add vend_phone char(20);`新增vend_phone列
+- `alert table vendors drop column vend_phone;`删除vend_phone列
+
+ALTER TABLE的一种常见用途是定义外键
+
+- `alert table orderitems add CONSTRAINT fk_orderitems_orders FOREIGN KEY (order_num) REFERENCES orders (order_num);`
+
+> **小心使用ALTER TABLE 使用ALTER TABLE要极为小心，应该 在进行改动前做一个完整的备份（模式和数据的备份）。数据 库表的更改不能撤销，如果增加了不需要的列，可能不能删 除它们。类似地，如果删除了不应该删除的列，可能会丢失 该列中的所有数据**
+
+#### 删除表
+
+- `drop table vendors;`删除整个表而不是其内容
+
+#### 重命名表
+
+- `rename table vendors to vendor; `RENAME TABLE所做的仅是重命名一个表。可以使用下面的语 句对多个表重命名：
+  - `rename table vendors to vendor, custom1 to custom;`
+
+#### 使用视图
+
+> 视图是虚拟的表。与包含数据的表不一样，视图只包含使用时动态检索数据的查询。
+
+- 重用SQL语句。
+- 简化复杂的SQL操作。在编写查询后，可以方便地重用它而不必知道它的基本查询细节。
+- 使用表的组成部分而不是整个表
+- 保护数据。可以给用户授予表的特定部分的访问权限而不是整个表的访问权限
+- 更改数据格式和表示。视图可返回与底层表的表示和格式不同的数据。
+
+> **性能问题**: 因为视图不包含数据，所以每次使用视图时，都必须处理查询执行时所需的任一个检索。如果你用多个联结 和过滤创建了复杂的视图或者嵌套了视图，可能会发现性能下降得很厉害。因此，在部署使用了大量视图的应用前，应该进行测试
+
+- 视图用CREATE VIEW语句来创建。
+-  使用SHOW CREATE VIEW viewname；来查看创建视图的语句。
+-  用DROP删除视图，其语法为DROP VIEW viewname;
+-  更新视图时，可以先用DROP再用CREATE，也可以直接用CREATE OR REPLACE VIEW。如果要更新的视图不存在，则第2条更新语句会创建一个视图；如果要更新的视图存在，则第2条更新语句会替换原有视图
+
+- `create view vendorlocations as select concat(rtrim(vend_name), rtrim(vend_country)) as vend_title from vendors order by vend_name;`
+
+> 通常，视图是可更新的（即，可以对它们使用INSERT、UPDATE和 DELETE）。更新一个视图将更新其基表（可以回忆一下，视图本身没有数 据）。如果你对视图增加或删除行，实际上是对其基表增加或删除行。 但是，并非所有视图都是可更新的。基本上可以说，如果MySQL不 能正确地确定被更新的基数据，则不允许更新（包括插入和删除）。这实 际上意味着，如果视图定义中有以下操作，则不能进行视图的更新：  分组（使用GROUP BY和HAVING）；  联结； 子查询； 并； 聚集函数（Min()、Count()、Sum()等; DISTINCT;导出（计算）列
+
+**视图主要用于数据检索**。
+
+#### 使用存储过程
+
