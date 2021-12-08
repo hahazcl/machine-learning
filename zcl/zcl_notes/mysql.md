@@ -561,7 +561,6 @@ begin
 	select avg(pro_price) as priceaverage
 	from products;
 end;
-
 此存储过程名未productpricing,用create procedure productpricing()语句定义.如果存储过程接受参数,它们在()中列举出来.begin和end语句用来限定存储过程体,过程提本身仅是一个简单的select语句
 ```
 
@@ -575,7 +574,6 @@ end;
 > 	from products;
 > end //
 > delimiter;
-> delimiter // create procedure processorders() begin declare cr cursor for select tracking_number from saic_shipping_rates; open cr; close cr;end // delimiter;
 > ```
 >
 > #####  其中，DELIMITER //告诉命令行实用程序使用//作为新的语 句结束分隔符，可以看到标志存储过程结束的END定义为END //而不是END;。这样，存储过程体内的;仍然保持不动，并且 正确地传递给数据库引擎。最后，为恢复为原来的语句分隔符，可使用DELIMITER ;。 除\符号外，任何字符都可以用作语句分隔符。
@@ -590,8 +588,8 @@ end;
 
 ```mysql
 create procedure productpricing(out p1 decimal(8,2),
-								out ph decimal(8,2),
-								out pa decimal(8,2))
+				out ph decimal(8,2),
+				out pa decimal(8,2))
 begin    
 	select min(prod_price) into p1 from products;
 	select max(prod_price) into ph from products;
@@ -609,12 +607,11 @@ end;
 create procedure ordertotal(in batchid char(50),
                             out ototal decimal(8,2))
 begin 
-	select sum(order_total_price_excluding_vat) from saic_shipping_rates where 			   outbound_dispatch_number = batchid INTO ototal; 
+	select sum(order_total_price_excluding_vat) from saic_shipping_rates where outbound_dispatch_number = batchid INTO ototal; 
 end;
 
 batchid定义为char,订单号需要传入,ototal定义为out,传出总计价格
 ```
-
 `call ordertotal('SH202100000702', @total);`
 
 `select @total;`
