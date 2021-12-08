@@ -539,3 +539,162 @@ ALTER TABLE的一种常见用途是定义外键
 
 #### 使用存储过程
 
+使用存储过程的场景:
+
+- 通过把处理封装在容易使用的单元中，简化复杂的操作
+- 由于不要求反复建立一系列处理步骤，这保证了数据的完整性。 如果所有开发人员和应用程序都使用同一（试验和测试）存储过程，则所使用的代码都是相同的。这一点的延伸就是防止错误。需要执行的步骤越多，出错的可能 性就越大。防止错误保证了数据的一致性。
+- 简化对变动的管理。如果表名、列名或业务逻辑(或别的内容)有变化，只需要更改存储过程的代码。使用它的人员甚至不需要知道这些变化。 这一点的延伸就是安全性。通过存储过程限制对基础数据的访问减少了数据讹误(无意识的或别的原因所导致的数据讹误)的机会。
+- 提高性能。因为使用存储过程比使用单独的SQL语句要快。
+- 存在一些只能用在单个请求中的MySQL元素和特性，存储过程可 以使用它们来编写功能更强更灵活的代码
+
+##### 执行存储过程
+
+> MySQL称存储过程的执行为调用，因此MySQL执行存储过程的语句 为CALL。CALL接受存储过程的名字以及需要传递给它的任意参数
+
+- `call productpricing(@pricelow, @pricehigh, @priceaverage);`执行名为productpricing的存储过程,它计算并返回产品的最低,最高和平均价格
+
+##### 创建存储过程
+
+```mysql
+create procedure productpricing()
+begin
+	select avg(pro_price) as priceaverage
+	from products;
+end;
+
+此存储过程名未productpricing,用create procedure productpricing()语句定义.如果存储过程接受参数,它们在()中列举出来.begin和end语句用来限定存储过程体,过程提本身仅是一个简单的select语句
+```
+
+> mysql命令行客户机的分隔符 如果你使用的是mysql命令行 实用程序，应该仔细阅读此说明。 默认的MySQL语句分隔符为;（正如你已经在迄今为止所使用 的MySQL语句中所看到的那样）。mysql命令行实用程序也使 用;作为语句分隔符。如果命令行实用程序要解释存储过程自 身内的;字符，则它们最终不会成为存储过程的成分，这会使 存储过程中的SQL出现句法错误。 解决办法是临时更改命令行实用程序的语句分隔符，如下所示：
+>
+> ```mysql
+> delimiter //
+> create procedure productpricing()
+> begin
+> 	select avg(prod_price) as priceaverage
+> 	from products;
+> end //
+> delimiter;
+> delimiter // create procedure processorders() begin declare cr cursor for select tracking_number from saic_shipping_rates; open cr; close cr;end // delimiter;
+> ```
+>
+> #####  其中，DELIMITER //告诉命令行实用程序使用//作为新的语 句结束分隔符，可以看到标志存储过程结束的END定义为END //而不是END;。这样，存储过程体内的;仍然保持不动，并且 正确地传递给数据库引擎。最后，为恢复为原来的语句分隔符，可使用DELIMITER ;。 除\符号外，任何字符都可以用作语句分隔符。
+
+- `call productpricing();`执行刚创建的存储过程并显示返回的结果
+
+##### 删除存储过程
+
+- `drop procedure if exists productpricing ;`
+
+##### 使用参数
+
+```mysql
+create procedure productpricing(out p1 decimal(8,2),
+								out ph decimal(8,2),
+								out pa decimal(8,2))
+begin    
+	select min(prod_price) into p1 from products;
+	select max(prod_price) into ph from products;
+	select avg(prod_price) into pa from products;
+end;    
+
+关键字out指出相应的参数用来从存储过程传出一个值(返回给调用者).in表示传给存储过程
+```
+
+`call productpricing(@pricelow,@pricehigh,@priceaverage);`
+
+##### 既有in也有out的参数
+
+```mysql
+create procedure ordertotal(in batchid char(50),
+                            out ototal decimal(8,2))
+begin 
+	select sum(order_total_price_excluding_vat) from saic_shipping_rates where 			   outbound_dispatch_number = batchid INTO ototal; 
+end;
+
+batchid定义为char,订单号需要传入,ototal定义为out,传出总计价格
+```
+
+`call ordertotal('SH202100000702', @total);`
+
+`select @total;`
+
+```mysql
++---------+
+| @total  |
++---------+
+| 2560.76 |
++---------+
+1 row in set (0.03 sec)
+```
+
+- `show create procedure ordertotal;`查看创建的存储过程的sql语句
+
+为了获得包括何时、由谁创建等详细信息的存储过程列表，使用`SHOW PROCEDURE STATUS;`。
+
+#### 触发器
+
+> 仅支持表只有表才支持触发器，视图不支持（临时表也不 支持）。触发器按每个表每个事件每次地定义，每个表每个事件每次只允许一个触发器。因此，每个表最多支持6个触发器（每条INSERT、UPDATE 和DELETE的之前和之后）。单一触发器不能与多个事件或多个表关联，所 以，如果你需要一个对INSERT和UPDATE操作执行的触发器，则应该定义 两个触发器
+
+##### 创建触发器
+
+在创建触发器时，需要给出4条信息：(最好 是在数据库范围内使用唯一的触发器名。)
+
+- 唯一的触发器名；
+- 触发器关联的表；
+- 触发器应该响应的活动（DELETE、INSERT或UPDATE）；
+- 触发器何时执行（处理之前或之后）。
+
+> 触发器失败 如果BEFORE触发器失败，则MySQL将不执行请 求的操作。此外，如果BEFORE触发器或语句本身失败，MySQL 将不执行AFTER触发器（如果有的话）。
+
+- `create trigger newproduct after insert on products for each row select 'Product added';`
+  - CREATE TRIGGER用来创建名为newproduct的新触发器。触发器可在一个操作发生之前或之后执行，这里给出了AFTER INSERT， 所以此触发器将在INSERT语句成功执行后执行。这个触发器还指定FOR EACH ROW，因此代码对每个插入行执行。在这个例子中，文本Product added将对每个插入的行显示一次。为了测试这个触发器，使用INSERT语句添加一行或多行到products 中，你将看到对每个成功的插入，显示Product added消息
+
+##### 删除触发器
+
+- `drop trigger newproduct;`触发器不能更新或覆盖。为了修改一个触发器，必须先删除它， 然后再重新创建。
+
+
+
+
+
+#### 事务处理
+
+```mysql
+mysql> select * from market;
++----+----------+--------+------------+--------------------------+
+| id | province | city   | store_code | store_name               |
++----+----------+--------+------------+--------------------------+
+|  1 | 上海市   | 上海市 | 0000001    | 上海市南桥百联购物中心   |
+|  2 | 上海市   | 上海市 | 0000002    | 上海市浦东百联购物中心   |
+|  3 | 安徽省   | 铜陵市 | 0000003    | 安徽省铜陵市白莲购物中心 |
+|  4 | 安徽省   | 合肥市 | 0000004    | 安徽省合肥市白莲购物中心 |
++----+----------+--------+------------+--------------------------+
+4 rows in set (0.15 sec)
+
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> delete from market;
+Query OK, 4 rows affected (0.11 sec)
+
+mysql> select * from market;
+Empty set
+
+mysql> rollback;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from market;
++----+----------+--------+------------+--------------------------+
+| id | province | city   | store_code | store_name               |
++----+----------+--------+------------+--------------------------+
+|  1 | 上海市   | 上海市 | 0000001    | 上海市南桥百联购物中心   |
+|  2 | 上海市   | 上海市 | 0000002    | 上海市浦东百联购物中心   |
+|  3 | 安徽省   | 铜陵市 | 0000003    | 安徽省铜陵市白莲购物中心 |
+|  4 | 安徽省   | 合肥市 | 0000004    | 安徽省合肥市白莲购物中心 |
++----+----------+--------+------------+--------------------------+
+4 rows in set (0.06 sec)
+```
+
+> 哪些语句可以回退？ 事务处理用来管理INSERT、UPDATE和 DELETE语句。你不能回退SELECT语句。（这样做也没有什么意 义。）你不能回退CREATE或DROP操作。事务处理块中可以使用 这两条语句，但如果你执行回退，它们不会被撤销。
+
