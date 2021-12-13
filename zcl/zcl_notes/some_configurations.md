@@ -1,3 +1,4 @@
+
 #### 安装源
 - 使用豆瓣源安装: `pip install 要安装的包 -i https://pypi.douban.com/simple/`
 
@@ -15,3 +16,9 @@
    - pip install jupyter_contrib_nbextensions
    - jupyter contrib nbextension install --user
    - pip install jupyter_nbextensions_configurator
+   - pip install -i https://pypi.doubanio.com/simple/ jupyterthemes
+   - jt -l  (查看主题)
+   - jt -t oceans16(安装主题)
+   - jt -r (恢复默认主题)
+   - jt -t oceans16 -f consolamono -nf robotosans -tf robotosans -N -T -cellw 60% -dfs 9 -ofs 9 -nf 16 -nfs 13 -fs 16
+
